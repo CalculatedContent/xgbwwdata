@@ -94,7 +94,7 @@ df = scan_datasets(
     filters=filters,
     smoke_train=True,       # 1-round XGBoost check
     random_state=0,
-    log_every=25,           # emit aggregate progress every N datasets
+    log_every=10,           # emit aggregate progress every N datasets
 )
 
 print(df.head())
