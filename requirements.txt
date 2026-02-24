@@ -1,0 +1,9 @@
+numpy>=1.23
+pandas>=2.0
+scikit-learn>=1.2
+scipy>=1.10
+xgboost>=1.7
+requests>=2.31
+openml>=0.15
+pmlb>=1.0.1
+keel-ds>=0.1.0
