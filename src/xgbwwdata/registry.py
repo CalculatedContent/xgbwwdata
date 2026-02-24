@@ -157,7 +157,7 @@ def scan_datasets(
     filters: Optional[Filters] = None,
     smoke_train: bool = True,
     random_state: int = 0,
-    log_every: int = 25,
+    log_every: int = 10,
 ) -> pd.DataFrame:
     filters = filters or Filters()
     names = [s.lower() for s in _get_sources(sources)]
@@ -188,10 +188,10 @@ def scan_datasets(
     def _maybe_log_progress(source: str) -> None:
         if log_every > 0 and attempted % int(log_every) == 0:
             logger.info(
-                "Progress [%s]: attempted=%d passed=%d failed_or_filtered=%d",
+                "Progress [%s]: found=%d attempted=%d failed_or_filtered=%d",
                 source,
-                attempted,
                 passed,
+                attempted,
                 attempted - passed,
             )
 

@@ -21,7 +21,7 @@ class ScanOptions:
     limit: Optional[int] = None
     smoke_train: bool = True
     random_state: int = 0
-    log_every: int = 25
+    log_every: int = 10
     checkpoint_csv: Optional[str] = None
     checkpoint_done_json: Optional[str] = None
     checkpoint_skips_json: Optional[str] = None
