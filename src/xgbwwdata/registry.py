@@ -157,6 +157,7 @@ def scan_datasets(
     filters: Optional[Filters] = None,
     smoke_train: bool = True,
     random_state: int = 0,
+    log_every: int = 25,
 ) -> pd.DataFrame:
     filters = filters or Filters()
     names = [s.lower() for s in _get_sources(sources)]
@@ -182,10 +183,23 @@ def scan_datasets(
         logger.info("Prepared LIBSVM index with %d candidate datasets", len(libsvm_index.urls))
 
     passed = 0
+    attempted = 0
+
+    def _maybe_log_progress(source: str) -> None:
+        if log_every > 0 and attempted % int(log_every) == 0:
+            logger.info(
+                "Progress [%s]: attempted=%d passed=%d failed_or_filtered=%d",
+                source,
+                attempted,
+                passed,
+                attempted - passed,
+            )
 
     # LIBSVM first (fast)
     if libsvm_index is not None:
         for uid in libsvm_index.iter_uids():
+            attempted += 1
+            _maybe_log_progress("libsvm")
             logger.info("Evaluating dataset %s", uid)
             try:
                 X, y, meta = _libsvm_load(uid, filters)
@@ -214,6 +228,8 @@ def scan_datasets(
     for src in src_objs:
         logger.info("Scanning source=%s", src.source_name)
         for uid in src.iter_ids():
+            attempted += 1
+            _maybe_log_progress(src.source_name)
             logger.info("Evaluating dataset %s", uid)
             try:
                 ok, info, X, y, task_type, n_classes, name = src.validate_and_prepare(uid, filters)
@@ -242,7 +258,7 @@ def scan_datasets(
                 logger.warning("Skipping %s due to error: %s", uid, exc)
                 continue
 
-    logger.info("Completed dataset scan with %d passing datasets", passed)
+    logger.info("Completed dataset scan: attempted=%d passed=%d", attempted, passed)
     return pd.DataFrame(records)
 
 def load_dataset(dataset_uid: str, filters: Optional[Filters] = None) -> Tuple[Any, Any, Dict[str, Any]]:
