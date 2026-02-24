@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 import numpy as np
@@ -12,6 +13,8 @@ from .sources.base import DataSource
 # ---- LIBSVM special loader (numeric sparse)
 import os, re, requests
 from sklearn.datasets import load_svmlight_file
+
+logger = logging.getLogger(__name__)
 
 _LIBSVM_PAGES = [
     "https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/binary.html",
@@ -158,6 +161,7 @@ def scan_datasets(
     filters = filters or Filters()
     names = [s.lower() for s in _get_sources(sources)]
     records: List[Dict[str, Any]] = []
+    logger.info("Starting dataset scan for sources=%s, limit=%s", names, limit)
 
     # Instantiate sources lazily (optional deps)
     src_objs: List[Any] = []
@@ -174,15 +178,19 @@ def scan_datasets(
         from .sources.amlb import AMLBSource
         src_objs.append(AMLBSource())
     libsvm_index = LibSVMIndex() if "libsvm" in names else None
+    if libsvm_index is not None:
+        logger.info("Prepared LIBSVM index with %d candidate datasets", len(libsvm_index.urls))
 
     passed = 0
 
     # LIBSVM first (fast)
     if libsvm_index is not None:
         for uid in libsvm_index.iter_uids():
+            logger.info("Evaluating dataset %s", uid)
             try:
                 X, y, meta = _libsvm_load(uid, filters)
                 if smoke_train and (not _smoke_train_1round(X, y, "classification", int(meta["n_classes"]), seed=random_state)):
+                    logger.info("Skipping %s: smoke train failed", uid)
                     continue
                 records.append({
                     "source": "libsvm",
@@ -194,19 +202,26 @@ def scan_datasets(
                     "n_classes": meta["n_classes"],
                 })
                 passed += 1
+                logger.info("Accepted dataset %s (%d accepted total)", uid, passed)
                 if limit is not None and passed >= int(limit):
+                    logger.info("Reached dataset limit (%d), returning results", int(limit))
                     return pd.DataFrame(records)
-            except Exception:
+            except Exception as exc:
+                logger.warning("Skipping %s due to error: %s", uid, exc)
                 continue
 
     # Other sources
     for src in src_objs:
+        logger.info("Scanning source=%s", src.source_name)
         for uid in src.iter_ids():
+            logger.info("Evaluating dataset %s", uid)
             try:
                 ok, info, X, y, task_type, n_classes, name = src.validate_and_prepare(uid, filters)
                 if not ok:
+                    logger.info("Skipping %s: did not pass filters", uid)
                     continue
                 if smoke_train and (not _smoke_train_1round(X, y, task_type, n_classes, seed=random_state)):
+                    logger.info("Skipping %s: smoke train failed", uid)
                     continue
                 info = info if isinstance(info, dict) else {}
                 records.append({
@@ -219,19 +234,25 @@ def scan_datasets(
                     "n_classes": info.get("n_classes", np.nan),
                 })
                 passed += 1
+                logger.info("Accepted dataset %s (%d accepted total)", uid, passed)
                 if limit is not None and passed >= int(limit):
+                    logger.info("Reached dataset limit (%d), returning results", int(limit))
                     return pd.DataFrame(records)
-            except Exception:
+            except Exception as exc:
+                logger.warning("Skipping %s due to error: %s", uid, exc)
                 continue
 
+    logger.info("Completed dataset scan with %d passing datasets", passed)
     return pd.DataFrame(records)
 
 def load_dataset(dataset_uid: str, filters: Optional[Filters] = None) -> Tuple[Any, Any, Dict[str, Any]]:
     filters = filters or Filters()
+    logger.info("Loading dataset %s", dataset_uid)
 
     if dataset_uid.startswith("libsvm:"):
         X, y, meta = _libsvm_load(dataset_uid, filters)
         meta["dataset_uid"] = dataset_uid
+        logger.info("Loaded dataset %s with %s rows and %s features", dataset_uid, meta.get("n_rows"), meta.get("n_features"))
         return X, y, meta
 
     prefix = dataset_uid.split(":", 1)[0].lower()
@@ -252,7 +273,9 @@ def load_dataset(dataset_uid: str, filters: Optional[Filters] = None) -> Tuple[A
 
     ok, info, X, y, task_type, n_classes, name = src.validate_and_prepare(dataset_uid, filters)
     if not ok:
+        logger.warning("Dataset %s did not pass filters: %s", dataset_uid, info)
         raise RuntimeError(f"Dataset did not pass filters: {info}")
     meta = dict(info if isinstance(info, dict) else {})
     meta.update({"dataset_uid": dataset_uid, "name": name, "task_type": task_type, "n_classes": n_classes})
+    logger.info("Loaded dataset %s (%s) with %s rows and %s features", dataset_uid, task_type, meta.get("n_rows"), meta.get("n_features"))
     return X, y, meta
