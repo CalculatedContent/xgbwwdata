@@ -39,37 +39,26 @@ pip install -r requirements.txt
 
 ### Colab / notebook fresh-clone install
 
-If you want the notebook cell to explicitly install requirements before the editable package,
-add `%pip install -r /content/repo_xgbwwdata/requirements.txt` before `%pip install -e ...`:
+Use the included helper so install + module refresh happens in one step (no manual kernel restart dance):
 
 ```python
 # Fresh clone
 !rm -rf /content/repo_xgbwwdata
 !git clone https://github.com/CalculatedContent/xgbwwdata.git /content/repo_xgbwwdata
 
-# MUST use %pip so install targets current kernel env
-%pip install -U pip setuptools wheel
-%pip install -r /content/repo_xgbwwdata/requirements.txt
-%pip install -e /content/repo_xgbwwdata --no-build-isolation --no-deps
-
-# Clear stale modules
-import sys
-for m in list(sys.modules):
-    if m == "xgbwwdata" or m.startswith("xgbwwdata."):
-        del sys.modules[m]
-
-# Optional: ensure repo root isn't shadowing
-sys.path = [p for p in sys.path if p not in ("/content/repo_xgbwwdata", "/content/xgbwwdata")]
-
-import xgbwwdata
-print("module:", xgbwwdata)
-print("__file__:", getattr(xgbwwdata, "__file__", None))
-print("__path__:", getattr(xgbwwdata, "__path__", None))
-print("exports:", [x for x in dir(xgbwwdata) if not x.startswith("_")])
+# Installs requirements + editable package, clears stale xgbwwdata modules,
+# removes common repo-shadowing paths, and verifies import.
+%run /content/repo_xgbwwdata/scripts/colab_install.py --repo /content/repo_xgbwwdata
 
 from xgbwwdata import Filters, scan_datasets, load_dataset
 print("import OK")
 ```
+
+If you prefer fully manual steps, the helper script is equivalent to:
+- upgrading `pip/setuptools/wheel`
+- installing `requirements.txt`
+- installing `-e` with `--no-build-isolation --no-deps`
+- clearing stale `xgbwwdata*` modules and cache paths in the current kernel.
 
 ## Quickstart
 
