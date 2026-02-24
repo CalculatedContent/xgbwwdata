@@ -76,7 +76,9 @@ print("import OK")
 ### Scan datasets
 
 ```python
-from xgbwwdata import Filters, scan_datasets
+from xgbwwdata import Filters, enable_logging, scan_datasets
+
+enable_logging()  # show scan progress in stdout
 
 filters = Filters(
     min_rows=200,
@@ -92,11 +94,14 @@ df = scan_datasets(
     filters=filters,
     smoke_train=True,       # 1-round XGBoost check
     random_state=0,
+    log_every=25,           # emit aggregate progress every N datasets
 )
 
 print(df.head())
 print(df["source"].value_counts())
 ```
+
+`enable_logging()` attaches a stream handler for the `xgbwwdata` logger so you can see per-dataset and periodic progress updates while scanning.
 
 ### Load a dataset by id
 
