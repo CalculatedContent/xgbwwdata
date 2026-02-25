@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import gc
 import logging
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
@@ -201,6 +202,7 @@ def scan_datasets(
             attempted += 1
             _maybe_log_progress("libsvm")
             logger.info("Evaluating dataset %s", uid)
+            X = y = None
             try:
                 X, y, meta = _libsvm_load(uid, filters)
                 if smoke_train and (not _smoke_train_1round(X, y, "classification", int(meta["n_classes"]), seed=random_state)):
@@ -223,14 +225,23 @@ def scan_datasets(
             except Exception as exc:
                 logger.warning("Skipping %s due to error: %s", uid, exc)
                 continue
+            finally:
+                del X, y
+                gc.collect()
 
     # Other sources
     for src in src_objs:
         logger.info("Scanning source=%s", src.source_name)
-        for uid in src.iter_ids():
+        if src.source_name == "openml" and hasattr(src, "iter_ids_filtered"):
+            uid_iter = src.iter_ids_filtered(filters=filters, include_unknown_sizes=False)
+        else:
+            uid_iter = src.iter_ids()
+
+        for uid in uid_iter:
             attempted += 1
             _maybe_log_progress(src.source_name)
             logger.info("Evaluating dataset %s", uid)
+            X = y = None
             try:
                 ok, info, X, y, task_type, n_classes, name = src.validate_and_prepare(uid, filters)
                 if not ok:
@@ -257,6 +268,9 @@ def scan_datasets(
             except Exception as exc:
                 logger.warning("Skipping %s due to error: %s", uid, exc)
                 continue
+            finally:
+                del X, y
+                gc.collect()
 
     logger.info("Completed dataset scan: attempted=%d passed=%d", attempted, passed)
     return pd.DataFrame(records)
