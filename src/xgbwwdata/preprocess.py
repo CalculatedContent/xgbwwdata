@@ -11,6 +11,19 @@ from sklearn.preprocessing import OneHotEncoder
 
 from .config import Filters
 
+
+def estimate_feature_count_after_preprocess(Xdf: pd.DataFrame) -> int:
+    """Cheap upper-bound estimate for feature count after OHE preprocessing."""
+    cat_cols = Xdf.select_dtypes(include=["object", "category", "bool"]).columns.tolist()
+    num_cols = [c for c in Xdf.columns if c not in cat_cols]
+    if not cat_cols and not num_cols:
+        return 0
+
+    # OneHotEncoder emits one column per observed category. Use dropna=False so NaN
+    # is counted as an explicit category if present.
+    cat_features = int(sum(int(Xdf[c].nunique(dropna=False)) for c in cat_cols))
+    return int(len(num_cols) + cat_features)
+
 def safe_1d(y: Any) -> np.ndarray:
     y = np.asarray(y)
     if y.ndim != 1:
@@ -79,6 +92,13 @@ def apply_filters_and_preprocess(
         n_classes = None
 
     if filters.preprocess:
+        est_d = estimate_feature_count_after_preprocess(Xdf)
+        if est_d > filters.max_features:
+            return False, "too_many_features_estimated_preprocess", None, None, task_type, n_classes
+
+        if int(n) * int(est_d) > int(filters.max_dense_elements):
+            return False, "dense_cost_too_high_estimated_preprocess", None, None, task_type, n_classes
+
         pre = make_preprocessor(Xdf, filters)
         X = pre.fit_transform(Xdf)
         d = int(X.shape[1])
