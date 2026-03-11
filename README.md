@@ -62,6 +62,14 @@ If you prefer fully manual steps, the helper script is equivalent to:
 
 ## Quickstart
 
+## Notebook examples
+
+- `XGBWW_Dataset_Catalog_Checkpoint.ipynb` — builds a dataset catalog with Drive checkpoint/resume.
+- `XGBWW_Catalog_Random5_XGBoost_Accuracy.ipynb` — trains one model for random per-source samples.
+- `XGBWW_Multisource_Experiment.ipynb` — multi-source XGBoost2WW experiment workflow.
+- `XGBWW_Checkpoint_PerSource_Validation.ipynb` — validates checkpoint reuse per source.
+- `XGBWW_OpenML_1049_W7W8_Alpha_Checkpoint.ipynb` — OpenML dataset 1049 run, tracking W7/W8 alpha by round with Drive checkpoints.
+
 ### Scan datasets
 
 ```python
