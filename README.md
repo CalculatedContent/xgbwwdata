@@ -19,7 +19,7 @@ A small, extensible **dataset scanning + loading** library designed for large-sc
 
 - `openml`  → `openml:<did>`
 - `pmlb`    → `pmlb:<name>`
-- `keel`    → `keel:<name>` (via `keel-ds`)
+- `keel`    → `keel:<name>` (optional; requires `keel-ds` + `XGBWW_ENABLE_KEEL=1`)
 - `libsvm`  → `libsvm:<filename>` (from LIBSVM dataset pages)
 - `amlb`    → `amlb_openml:<did>` (OpenML suites 269/270/271 by default)
 
@@ -35,6 +35,13 @@ Install all runtime dependencies from `requirements.txt`:
 
 ```bash
 pip install -r requirements.txt
+```
+
+KEEL is now optional and disabled by default. To enable it:
+
+```bash
+export XGBWW_ENABLE_KEEL=1
+pip install keel-ds
 ```
 
 ### Colab / notebook fresh-clone install
@@ -86,7 +93,7 @@ filters = Filters(
 )
 
 df = scan_datasets(
-    sources=["openml", "pmlb", "keel", "libsvm", "amlb"],  # default is all
+    sources=["openml", "pmlb", "keel", "libsvm", "amlb"],  # explicit list (keel optional)
     limit=200,              # stop after N passing datasets (None = all)
     filters=filters,
     smoke_train=True,       # 1-round XGBoost check
@@ -97,6 +104,8 @@ df = scan_datasets(
 print(df.head())
 print(df["source"].value_counts())
 ```
+
+If `sources` is omitted, defaults are `["openml", "pmlb", "libsvm", "amlb"]`. KEEL is included only when `XGBWW_ENABLE_KEEL=1`.
 
 `enable_logging()` attaches a stream handler for the `xgbwwdata` logger so you can see per-dataset and periodic progress updates while scanning.
 

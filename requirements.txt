@@ -6,4 +6,3 @@ xgboost>=1.7
 requests>=2.31
 openml>=0.15
 pmlb>=1.0.1
-keel-ds>=0.1.0

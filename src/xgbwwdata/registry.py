@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 import xgboost as xgb
 
-from .config import Filters
+from .config import Filters, keel_enabled_by_default
 from .sources.base import DataSource
 
 # ---- LIBSVM special loader (numeric sparse)
@@ -150,7 +150,12 @@ def _smoke_train_1round(X: Any, y: Any, task_type: str, n_classes: Optional[int]
         return False
 
 def _get_sources(names: Optional[Sequence[str]]) -> List[str]:
-    return list(names) if names is not None else ["openml","pmlb","keel","libsvm","amlb"]
+    if names is not None:
+        return list(names)
+    defaults = ["openml", "pmlb", "libsvm", "amlb"]
+    if keel_enabled_by_default():
+        defaults.append("keel")
+    return defaults
 
 def scan_datasets(
     sources: Optional[Sequence[str]] = None,
@@ -174,8 +179,14 @@ def scan_datasets(
         from .sources.pmlb import PMLBSource
         src_objs.append(PMLBSource(include_regression=True))
     if "keel" in names:
-        from .sources.keel import KEELSource
-        src_objs.append(KEELSource())
+        try:
+            from .sources.keel import KEELSource
+            src_objs.append(KEELSource())
+        except Exception as exc:
+            logger.warning(
+                "Skipping KEEL source initialization (set XGBWW_ENABLE_KEEL=1 and install keel-ds to enable): %s",
+                exc,
+            )
     if "amlb" in names:
         from .sources.amlb import AMLBSource
         src_objs.append(AMLBSource())

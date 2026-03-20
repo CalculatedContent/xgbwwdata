@@ -1,7 +1,21 @@
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass
 from typing import Optional, Sequence
+
+
+def env_flag(name: str, default: bool = False) -> bool:
+    """Parse a boolean-like environment variable."""
+    raw = os.getenv(name)
+    if raw is None:
+        return default
+    return raw.strip().lower() in {"1", "true", "yes", "on"}
+
+
+def keel_enabled_by_default() -> bool:
+    """Return whether KEEL integrations should be enabled automatically."""
+    return env_flag("XGBWW_ENABLE_KEEL", default=False)
 
 @dataclass(frozen=True)
 class Filters:
