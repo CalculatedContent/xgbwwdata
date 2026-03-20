@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import argparse
 import importlib
+import os
 import site
 import subprocess
 import sys
@@ -43,6 +44,13 @@ def bootstrap(repo: Path) -> None:
     _pip_install(["install", "-U", "pip", "setuptools", "wheel"])
     if req_file.exists():
         _pip_install(["install", "-r", str(req_file)])
+    if os.getenv("XGBWW_ENABLE_KEEL", "").strip().lower() in {"1", "true", "yes", "on"}:
+        try:
+            _pip_install(["install", "keel-ds>=0.1.0"])
+            print("Installed optional dependency: keel-ds")
+        except Exception as exc:
+            print("Optional dependency keel-ds unavailable; continuing without KEEL source.")
+            print(type(exc).__name__, exc)
     _pip_install(["install", "-e", str(repo), "--no-build-isolation", "--no-deps"])
 
     importlib.invalidate_caches()
