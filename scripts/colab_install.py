@@ -51,7 +51,10 @@ def bootstrap(repo: Path) -> None:
         except Exception as exc:
             print("Optional dependency keel-ds unavailable; continuing without KEEL source.")
             print(type(exc).__name__, exc)
-    _pip_install(["install", "-e", str(repo), "--no-build-isolation", "--no-deps"])
+    # Avoid --no-build-isolation here: some notebook runtimes start without
+    # setuptools in the active environment, which breaks editable installs.
+    # Let pip create an isolated build env so install stays robust.
+    _pip_install(["install", "-e", str(repo), "--no-deps"])
 
     importlib.invalidate_caches()
     if hasattr(site, "main"):

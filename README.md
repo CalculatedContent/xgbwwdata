@@ -64,7 +64,7 @@ print("import OK")
 If you prefer fully manual steps, the helper script is equivalent to:
 - upgrading `pip/setuptools/wheel`
 - installing `requirements.txt`
-- installing `-e` with `--no-build-isolation --no-deps`
+- installing `-e` with `--no-deps`
 - clearing stale `xgbwwdata*` modules and cache paths in the current kernel.
 
 ## Quickstart
